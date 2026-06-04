@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Food Decision Assistant</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0d0d;--panel:#111;--border:#2a2a2a;--accent:#00e5a0;--accent2:#7c6fff;--accent3:#ff6b6b;--yellow:#ffd93d;--text:#e0e0e0;--muted:#666;--red:#ff4444;--green:#00e5a0;--blue:#4fc3f7}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;font-size:13px;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+/* HEADER */
+.header{background:#000;border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.header-logo{color:var(--accent);font-size:18px;font-weight:700;letter-spacing:2px}
+.header-sub{color:var(--muted);font-size:11px}
+.badge{display:inline-flex;align-items:center;gap:4px;background:#1a1a2e;border:1px solid var(--accent2);color:var(--accent2);padding:2px 8px;border-radius:3px;font-size:10px}
+.badge.green{border-color:var(--accent);color:var(--accent)}
+.badge.yellow{border-color:var(--yellow);color:var(--yellow)}
+/* AREA SELECTOR */
+.area-bar{background:#0a0a0a;border-bottom:1px solid var(--border);padding:8px 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.area-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 14px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:12px;transition:all .2s}
+.area-btn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+.area-btn:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+.area-label{color:var(--muted);font-size:11px;margin-right:4px}
+.scrape-btn{margin-left:auto;background:transparent;border:1px solid var(--accent);color:var(--accent);padding:5px 12px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:11px}
+.mock-badge{background:#1a1a00;border:1px solid var(--yellow);color:var(--yellow);padding:2px 8px;border-radius:3px;font-size:10px}
+/* PANELS */
+.main{max-width:1200px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.panel-title{background:#161616;border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;justify-content:space-between}
+.panel-title h2{color:var(--text);font-size:13px;font-weight:700;letter-spacing:1px}
+.panel-title h2 span{color:var(--accent)}
+.win-btns{color:var(--muted);font-size:11px;letter-spacing:2px}
+.panel-body{padding:16px}
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.stat-card{background:#0a0a0a;border:1px solid var(--border);border-radius:4px;padding:14px;text-align:center}
+.stat-val{font-size:28px;font-weight:700;color:var(--accent);display:block;margin-bottom:4px}
+.stat-label{color:var(--muted);font-size:11px}
+/* OBJECTIVES */
+.obj-list{list-style:none;display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.obj-item{display:flex;gap:10px;align-items:flex-start;padding:6px 10px;background:#0a0a0a;border-radius:3px}
+.obj-num{color:var(--accent);font-weight:700;min-width:20px}
+/* SCENARIO TABS */
+.scenario-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.sc-tab{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:11px;transition:all .2s}
+.sc-tab.active{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+.sc-tab:hover:not(.active){border-color:var(--accent2);color:var(--accent2)}
+/* TOP 3 CARDS */
+.top3-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.r-card{background:#0a0a0a;border:1px solid var(--border);border-radius:5px;padding:14px;position:relative}
+.r-card.rank1{border-color:var(--yellow)}
+.r-card.rank2{border-color:#aaa}
+.r-card.rank3{border-color:#cd7f32}
+.r-rank{position:absolute;top:10px;right:10px;font-size:11px;color:var(--muted)}
+.r-rating{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.r-rating .stars{color:var(--yellow)}
+.r-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.4}
+.r-type{color:var(--muted);font-size:11px;margin-bottom:10px}
+.r-price-badge{display:inline-block;background:#1a2a1a;border:1px solid var(--accent);color:var(--accent);padding:2px 8px;border-radius:3px;font-size:11px;margin-bottom:8px}
+.r-score{font-size:20px;font-weight:700;color:var(--accent2)}
+.r-score small{font-size:11px;color:var(--muted)}
+.r-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.tag{background:#1a1a2e;border:1px solid var(--accent2);color:var(--accent2);padding:1px 6px;border-radius:2px;font-size:10px}
+.tag.red{background:#2a1a1a;border-color:var(--accent3);color:var(--accent3)}
+.tag.green{background:#0a1a0a;border-color:var(--accent);color:var(--accent)}
+.tag.yellow{background:#1a1a0a;border-color:var(--yellow);color:var(--yellow)}
+/* AI ASK BOX */
+.ask-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.ask-suggestion{background:#0a0a1a;border:1px solid var(--accent2);color:var(--accent2);padding:4px 10px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:11px}
+.ask-suggestion:hover{background:var(--accent2);color:#fff}
+.ask-input-row{display:flex;gap:8px}
+.ask-input{flex:1;background:#0a0a0a;border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:4px;font-family:inherit;font-size:12px;outline:none}
+.ask-input:focus{border-color:var(--accent)}
+.ask-btn{background:var(--accent);color:#000;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700}
+.ask-response{margin-top:12px;background:#0a0a0a;border:1px solid var(--border);border-radius:4px;padding:12px;font-size:12px;line-height:1.7;min-height:60px;color:var(--text);white-space:pre-wrap;display:none}
+.ask-response.show{display:block}
+/* TABLE */
+.filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:center}
+.filter-group{display:flex;flex-direction:column;gap:3px}
+.filter-label{font-size:10px;color:var(--muted)}
+.filter-select{background:#0a0a0a;border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:3px;font-family:inherit;font-size:11px}
+.price-range{display:flex;align-items:center;gap:6px}
+.price-range input[type=range]{accent-color:var(--accent);width:120px}
+.price-val{color:var(--accent);font-size:11px;min-width:60px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#161616;color:var(--muted);padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--accent)}
+td{padding:7px 10px;border-bottom:1px solid #1a1a1a;vertical-align:middle}
+tr:hover td{background:#161616}
+.tbl-name{font-weight:600;color:var(--text);max-width:200px}
+.tbl-name small{display:block;color:var(--muted);font-weight:400;font-size:10px;margin-top:1px}
+.score-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-weight:700;font-size:11px}
+.score-high{background:#0a2a1a;color:var(--accent)}
+.score-mid{background:#1a1a2e;color:var(--accent2)}
+.score-low{background:#2a1a1a;color:var(--accent3)}
+.conf-bar{display:flex;align-items:center;gap:5px}
+.conf-fill{height:4px;border-radius:2px;background:var(--accent)}
+.risk-badge{padding:1px 6px;border-radius:2px;font-size:10px}
+.risk-low{background:#0a2a0a;color:#00e5a0}
+.risk-mid{background:#1a1a00;color:var(--yellow)}
+.risk-high{background:#2a0a0a;color:#ff4444}
+.bool-yes{color:var(--accent)}
+.bool-no{color:#333}
+.maps-link{color:var(--accent2);font-size:10px}
+/* REVIEW QUEUE */
+.review-item{background:#0a0a0a;border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:10px}
+.review-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.review-name{font-weight:700;color:var(--text)}
+.review-type{color:var(--muted);font-size:10px}
+.review-flags{display:flex;flex-direction:column;gap:5px}
+.flag{display:flex;align-items:flex-start;gap:8px;font-size:11px}
+.flag-icon{color:var(--red);min-width:14px}
+.flag-icon.warn{color:var(--yellow)}
+.flag-text{color:var(--muted)}
+/* FOOTER */
+footer{background:#000;border-top:1px solid var(--border);padding:12px 20px;color:var(--muted);font-size:10px;text-align:center}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#0a0a0a}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+/* RESPONSIVE */
+@media(max-width:768px){.top3-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}.filters{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-logo">🍜 AI FOOD DECISION ASSISTANT</div>
+    <div class="header-sub">ระบบช่วยเลือกร้านอาหารสำหรับทีม 8–12 คน · Prince Tanadol · 3 มิ.ย. 2569</div>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto">
+    <span class="badge green">Apify Scraper</span>
+    <span class="badge">Google Sheets</span>
+    <span class="badge">Claude AI</span>
+    <span class="badge">Scoring Model</span>
+    <span class="badge green">n8n Automation</span>
+  </div>
+</div>
+
+<div class="area-bar">
+  <span class="area-label">AREA:</span>
+  <button class="area-btn" onclick="setArea('สยาม')">🏬 สยาม</button>
+  <button class="area-btn" onclick="setArea('อารีย์')">🌿 อารีย์</button>
+  <button class="area-btn active" onclick="setArea('ทองหล่อ')">🍷 ทองหล่อ</button>
+  <button class="area-btn" onclick="setArea('อโศก')">🏙 อโศก</button>
+  <button class="area-btn" onclick="setArea('พร้อมพงษ์')">💎 พร้อมพงษ์</button>
+  <button class="scrape-btn" onclick="alert('Apify Run IDs: iDhVc1YzQALVkI2yE · yBHkHIrkZ5varnyqD\nDataset: UaS7Zv6HxAuevlkn6 · vAplT0yabr4B7CyCB')">🔄 Apify Dataset ↗</button>
+  <span class="mock-badge" id="mockBadge">ข้อมูลจาก Apify Google Maps Scraper</span>
+</div>
+
+<div class="main">
+
+  <!-- OBJECTIVE -->
+  <div class="panel">
+    <div class="panel-title"><h2><span>🎯</span> PROJECT OBJECTIVE</h2><span class="win-btns">−□×</span></div>
+    <div class="panel-body">
+      <div class="stats-grid" id="statsGrid"></div>
+      <ul class="obj-list">
+        <li class="obj-item"><span class="obj-num">01</span><span>เก็บข้อมูลร้านอาหารจริงด้วย <strong>Apify Google Maps Scraper</strong> — 5 ย่าน × 5 ร้าน = 25 ร้านรวม</span></li>
+        <li class="obj-item"><span class="obj-num">02</span><span>Clean &amp; score ด้วย <strong>Claude AI</strong> — Scoring Model 100 คะแนน 6 มิติ</span></li>
+        <li class="obj-item"><span class="obj-num">03</span><span>Scenario Recommendation: ปลอดภัยสุด / ประหยัด / รีบกิน / คุยงาน / ทีม 8–12 คน</span></li>
+        <li class="obj-item"><span class="obj-num">04</span><span>AI Ask Box ตอบจาก dataset ของย่านที่เลือก — ไม่ใช่ความรู้ทั่วไป</span></li>
+        <li class="obj-item"><span class="obj-num">05</span><span>Human Review Queue — flag ร้านที่ข้อมูล confidence ต่ำหรือมีความเสี่ยงสูง</span></li>
+        <li class="obj-item"><span class="obj-num">06</span><span><strong>n8n Weekly Automation</strong>: ทุกจันทร์ 9 AM → Apify → Score → Sheets → LINE Notify อัตโนมัติ</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- DATASET OVERVIEW -->
+  <div class="panel">
+    <div class="panel-title"><h2><span>📊</span> DATASET OVERVIEW — <span id="areaTitle">ทองหล่อ</span></h2><span class="win-btns">−□×</span></div>
+    <div class="panel-body">
+      <div style="color:var(--muted);font-size:10px;margin-bottom:12px">Weighted 6-dimension scoring model · Rating 25% / Group 20% / Price 15% / Travel 15% / Data 15% / Unique 10%</div>
+      <div class="stats-grid" id="areaStats"></div>
+    </div>
+  </div>
+
+  <!-- SCENARIO RECOMMENDATION -->
+  <div class="panel">
+    <div class="panel-title"><h2><span>🏆</span> SCENARIO RECOMMENDATION — TOP 3</h2><span class="win-btns">−□×</span></div>
+    <div class="panel-body">
+      <div class="scenario-tabs">
+        <button class="sc-tab active" onclick="setScenario('safe')">ปลอดภัยสุด</button>
+        <button class="sc-tab" onclick="setScenario('budget')">ประหยัด</button>
+        <button class="sc-tab" onclick="setScenario('fast')">รีบกิน</button>
+        <button class="sc-tab" onclick="setScenario('biz')">คุยงานได้</button>
+        <button class="sc-tab" onclick="setScenario('group')">ทีม 8–12 คน</button>
+      </div>
+      <div class="top3-grid" id="top3Grid"></div>
+    </div>
+  </div>
+
+  <!-- AI ASK BOX -->
+  <div class="panel">
+    <div class="panel-title"><h2><span>🤖</span> AI ASK BOX <span style="color:var(--muted);font-size:10px">GROUNDED</span></h2><span class="win-btns">−□×</span></div>
+    <div class="panel-body">
+      <div style="color:var(--muted);font-size:11px;margin-bottom:10px">ถามได้เลย! AI จะตอบโดยอ้างอิงจาก dataset ย่าน <strong id="askAreaLabel" style="color:var(--accent)">ทองหล่อ</strong> เท่านั้น</div>
+      <div class="ask-suggestions" id="askSuggestions">
+        <div class="ask-suggestion" onclick="askQ(this.textContent)">ร้านราคาไม่เกิน 300 รองรับ 10 คนได้ไหม?</div>
+        <div class="ask-suggestion" onclick="askQ(this.textContent)">ทีม 12 คน งบ 400/คน อยากนั่งคุยงาน ที่ไหนดี?</div>
+        <div class="ask-suggestion" onclick="askQ(this.textContent)">ร้านไหน rating ดีที่สุดในย่านนี้?</div>
+        <div class="ask-suggestion" onclick="askQ(this.textContent)">อยากกินเร็วๆ มีอะไรบ้าง?</div>
+        <div class="ask-suggestion" onclick="askQ(this.textContent)">ร้านไหนบรรยากาศเงียบ เหมาะประชุม?</div>
+        <div class="ask-suggestion" onclick="askQ(this.textContent)">ถูกที่สุดในย่านนี้คือร้านไหน?</div>
+      </div>
+      <div class="ask-input-row">
+        <input class="ask-input" id="askInput" type="text" placeholder="พิมพ์คำถามเกี่ยวกับร้านอาหารในย่านนี้..." onkeydown="if(event.key==='Enter')askQ()">
+        <button class="ask-btn" onclick="askQ()">ถาม</button>
+      </div>
+      <div class="ask-response" id="askResponse"></div>
+    </div>
+  </div>
+
+  <!-- RESTAURANT TABLE -->
+  <div class="panel">
+    <div class="panel-title">
+      <h2><span>🗃</span> RESTAURANT DATASET <span id="tableCount" style="color:var(--muted);font-size:11px"></span></h2>
+      <span class="win-btns">−□×</span>
+    </div>
+    <div class="panel-body">
+      <div class="filters">
+        <div class="filter-group">
+          <span class="filter-label">ประเภทอาหาร:</span>
+          <select class="filter-select" id="filterType" onchange="renderTable()">
+            <option value="">ทั้งหมด</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Scenario:</span>
+          <select class="filter-select" id="filterScenario" onchange="renderTable()">
+            <option value="">ทั้งหมด</option>
+            <option value="group">ทีม 8–12 คน</option>
+            <option value="biz">คุยงานได้</option>
+            <option value="fast">กินเร็ว</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Risk:</span>
+          <select class="filter-select" id="filterRisk" onchange="renderTable()">
+            <option value="">ทั้งหมด</option>
+            <option value="ต่ำ">ความเสี่ยงต่ำ</option>
+            <option value="กลาง">ความเสี่ยงกลาง</option>
+            <option value="สูง">ความเสี่ยงสูง</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">ราคาสูงสุด/คน:</span>
+          <div class="price-range">
+            <input type="range" id="filterPrice" min="100" max="2500" value="2500" step="50" oninput="document.getElementById('priceVal').textContent='฿'+this.value+'/คน';renderTable()">
+            <span class="price-val" id="priceVal">฿2500/คน</span>
+          </div>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table id="mainTable">
+          <thead>
+            <tr>
+              <th>ร้านอาหาร</th>
+              <th onclick="sortTable('price')">ราคา/คน ↕</th>
+              <th onclick="sortTable('rating')">Rating ↕</th>
+              <th onclick="sortTable('score')">Score ↕</th>
+              <th>Confidence</th>
+              <th>ประเภท</th>
+              <th>เวลาเปิด</th>
+              <th>กลุ่ม</th>
+              <th>เงียบ</th>
+              <th>คุยงาน</th>
+              <th>กินเร็ว</th>
+              <th>Risk</th>
+              <th>หมายเหตุ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- HUMAN REVIEW QUEUE -->
+  <div class="panel">
+    <div class="panel-title">
+      <h2><span>🔍</span> HUMAN REVIEW QUEUE <span id="reviewCount" style="color:var(--red);font-size:11px"></span></h2>
+      <span class="win-btns">−□×</span>
+    </div>
+    <div class="panel-body" id="reviewPanel"></div>
+  </div>
+
+</div>
+
+<footer>
+  AI Food Decision Assistant · 5 ย่าน × 5 ร้าน = 25 ร้าน · Scoring: 25+20+15+15+15+10 · Claude AI + Apify + n8n + Google Sheets · ทีม 8–12 คน
+</footer>
+
+<script>
+// =============================================
+// RESTAURANT DATA — 5 ย่าน × 5 ร้าน = 25 ร้าน
+// =============================================
+const ALL_DATA = {
+  'สยาม': [
+    { name:'Din Tai Fung Siam Paragon',  note:'BTS สยาม ชั้น G Siam Paragon', type:'Chinese / Dumpling',  price:500, rating:4.6, reviews:2300, hours:'10:00–22:00', groupSize:'4–20 คน', speed:'ปานกลาง', noise:'เสียงดัง', biz:false, fast:false, group:true, risk:'ต่ำ',  conf:92, maps:'https://maps.google.com/?q=Din+Tai+Fung+Siam+Paragon' },
+    { name:'Coca Suki Siam Square',       note:'เดิน 3 นาทีจาก BTS สยาม',     type:'Thai / Suki',        price:250, rating:4.3, reviews:1200, hours:'11:00–22:00', groupSize:'8–20 คน', speed:'ปานกลาง', noise:'เสียงดัง', biz:false, fast:false, group:true, risk:'ต่ำ',  conf:85, maps:'https://maps.google.com/?q=Coca+Suki+Siam+Square' },
+    { name:'MK Suki Siam Paragon',        note:'ชั้น 4 Siam Paragon',           type:'Thai / Suki / Buffet',price:280, rating:4.1, reviews:3100, hours:'10:00–22:00', groupSize:'4–20 คน', speed:'ปานกลาง', noise:'เสียงดัง', biz:false, fast:false, group:true, risk:'ต่ำ',  conf:90, maps:'https://maps.google.com/?q=MK+Suki+Siam+Paragon' },
+    { name:'Nara Thai Cuisine Siam',      note:'ชั้น 4 Siam Center BTS สยาม',  type:'Thai restaurant',    price:500, rating:4.4, reviews:890,  hours:'11:00–22:00', groupSize:'4–10 คน', speed:'ปานกลาง', noise:'ปานกลาง', biz:true,  fast:false, group:true, risk:'ต่ำ',  conf:87, maps:'https://maps.google.com/?q=Nara+Thai+Cuisine+Siam' },
+    { name:'Greyhound Cafe Siam',         note:'Siam Discovery ชั้น 3',         type:'Fusion / Cafe',      price:280, rating:4.2, reviews:650,  hours:'10:00–21:00', groupSize:'2–8 คน',  speed:'ปานกลาง', noise:'ปานกลาง', biz:true,  fast:false, group:false,risk:'ต่ำ',  conf:82, maps:'https://maps.google.com/?q=Greyhound+Cafe+Siam' },
+  ],
+  'อารีย์': [
+    { name:'เล ลาว สาขาอารีย์',           note:'เดิน 5 นาทีจาก BTS อารีย์',    type:'Thai / Suki',        price:300, rating:4.8, reviews:988,  hours:'10:30–22:00', groupSize:'4–14 คน', speed:'ปานกลาง', noise:'ปานกลาง', biz:false, fast:false, group:true, risk:'ต่ำ',  conf:90, maps:'https://maps.google.com/?q=Lay+Lao+Ari' },
+    { name:'อองตองข้าวซอย อารีย์',        note:'ใกล้ BTS อารีย์ ซอยพหลฯ 7',  type:'Thai / Noodle',      price:200, rating:4.7, reviews:9000, hours:'09:00–20:30', groupSize:'2–8 คน',  speed:'เร็ว',    noise:'ปานกลาง', biz:false, fast:true,  group:false,risk:'ต่ำ',  conf:95, maps:'https://maps.google.com/?q=Arnothai+Khao+Soi+Ari' },
+    { name:"Jones' Salad La Villa Ari",   note:'La Villa อารีย์ BTS อารีย์',    type:'Healthy / Salad',    price:180, rating:4.8, reviews:9000, hours:'09:00–21:30', groupSize:'2–10 คน', speed:'เร็ว',    noise:'เงียบ',   biz:true,  fast:true,  group:false,risk:'ต่ำ',  conf:95, maps:'https://maps.google.com/?q=Jones+Salad+La+Villa+Ari' },
+    { name:'ก๋วยเตี๋ยวเตาถ่านออนเซ็น',    note:'อารีย์ฮิลล์ เดิน 7 นาที',     type:'Noodle / Japanese',  price:160, rating:4.7, reviews:3000, hours:'10:30–20:00', groupSize:'2–8 คน',  speed:'เร็ว',    noise:'ปานกลาง', biz:false, fast:true,  group:false,risk:'ต่ำ',  conf:92, maps:'https://maps.google.com/?q=Guay+Tiew+Tao+Taan+Onsen+Ari' },
+    { name:'Joha Korean Restaurant',      note:'ถ.พหลฯ ใกล้ BTS อารีย์',       type:'Korean restaurant',  price:300, rating:4.8, reviews:173,  hours:'11:30–21:00', groupSize:'4–10 คน', speed:'ปานกลาง', noise:'ปานกลาง', biz:true,  fast:false, group:true, risk:'กลาง', conf:72, maps:'https://maps.google.com/?q=Joha+Korean+Restaurant+Ari' },
+  ],
+  'ทองหล่อ': [
+    { name:'Ginzado ทองหล่อ',             note:'BTS ทองหล่อ เดิน 5 นาที',      type:'Japanese BBQ',       price:600, rating:4.4, reviews:187,  hours:'18:00–22:30', groupSize:'4–12 คน', speed:'ช้า',     noise:'เสียงดัง', biz:false, fast:false, group:true, risk:'กลาง', conf:75, maps:'https://maps.google.com/?q=Ginzado+Thonglor' },
+    { name:'Kiani ทองหล่อ',              note:'ซอยทองหล่อ BTS ทองหล่อ',       type:'Korean restaurant',  price:350, rating:4.4, reviews:280,  hours:'11:30–21:00', groupSize:'4–10 คน', speed:'ปานกลาง', noise:'ปานกลาง', biz:false, fast:false, group:true, risk:'ต่ำ',  conf:80, maps:'https://maps.google.com/?q=Kiani+Thonglor' },
+    { name:'Honmono Sushi ทองหล่อ',      note:'ใกล้ BTS ทองหล่อ',             type:'Japanese / Sushi / Buffet', price:800, rating:4.3, reviews:120, hours:'17:00–22:00', groupSize:'4–14 คน', speed:'ช้า', noise:'เงียบ', biz:true, fast:false, group:true, risk:'กลาง', conf:70, maps:'https://maps.google.com/?q=Honmono+Sushi+Thonglor' },
+    { name:'Taishoken Ramen ทองหล่อ',    note:'ซอยทองหล่อ 10',                type:'Japanese / Ramen',   price:300, rating:4.0, reviews:83,   hours:'11:00–22:00', groupSize:'2–6 คน',  speed:'เร็ว',    noise:'ปานกลาง', biz:false, fast:true,  group:false,risk:'ต่ำ',  conf:65, maps:'https://maps.google.com/?q=Taishoken+Ramen+Thonglor' },
+    { name:'Audrey Cafe ทองหล่อ',        note:'ซอยทองหล่อ 11 BTS ทองหล่อ',   type:'Fusion / Thai',      price:600, rating:3.9, reviews:249,  hours:'11:00–21:00', groupSize:'4–10 คน', speed:'ปานกลาง', noise:'ปานกลาง', biz:false, fast:false, group:true, risk:'กลาง', conf:68, maps:'https://maps.google.com/?q=Audrey+Cafe+Thonglor' },
+  ],
+  'อโศก': [
+    { name:'Achyut Bhavan Bangkok',       note:'ใกล้ BTS อโศก / MRT สุขุมวิท', type:'Indian / Vegetarian',price:300, rating:4.8, reviews:363,  hours:'10:00–23:00', groupSize:'4–12 คน', speed:'ปานกลาง', noise:'ปานกลาง', biz:true,  fast:false, group:true, risk:'ต่ำ',  conf:88, maps:'https://maps.google.com/?q=Achyut+Bhavan+Bangkok' },
+    { name:'Madam Saranair Thai Food',    note:'ซอย Sukhumvit 21 อโศก',        type:'Thai restaurant',    price:400, rating:4.5, reviews:2188, hours:'11:00–23:00', groupSize:'4–14 คน', speed:'ปานกลาง', noise:'ปานกลาง', biz:false, fast:false, group:true, risk:'ต่ำ',  conf:90, maps:'https://maps.google.com/?q=Madam+Saranair+Asoke' },
+    { name:'JP French Restaurant',        note:'ซอย Sukhumvit 31 หยุดอาทิตย์', type:'French restaurant',  price:1200,rating:4.6, reviews:464,  hours:'12:00–22:30', groupSize:'4–10 คน', speed:'ช้า',     noise:'เงียบ',   biz:true,  fast:false, group:true, risk:'กลาง', conf:85, maps:'https://maps.google.com/?q=JP+French+Restaurant+Bangkok' },
+    { name:'LA PLANTE',                   note:'AVORA31 Sukhumvit 31 หยุดจันทร์',type:'French Bistro',     price:500, rating:4.6, reviews:260,  hours:'08:00–22:00', groupSize:'4–14 คน', speed:'ปานกลาง', noise:'ปานกลาง', biz:true,  fast:false, group:true, risk:'ต่ำ',  conf:85, maps:'https://maps.google.com/?q=LA+PLANTE+Sukhumvit' },
+    { name:'Chai Jia Chai 蔡家菜',         note:'Sukhumvit 31 จองล่วงหน้าเท่านั้น',type:'Chinese Fine Dining',price:1500,rating:4.8, reviews:107,  hours:'17:00–22:00', groupSize:'4–12 คน', speed:'ช้า',     noise:'เงียบ',   biz:true,  fast:false, group:true, risk:'สูง',  conf:72, maps:'https://maps.google.com/?q=Chai+Jia+Chai+Bangkok' },
+  ],
+  'พร้อมพงษ์': [
+    { name:"Lily Fu's",                   note:'Soi Sukhumvit 11 BTS พร้อมพงษ์',type:'Authentic Thai',     price:800, rating:4.5, reviews:660,  hours:'06:30–01:00', groupSize:'4–12 คน', speed:'ปานกลาง', noise:'ปานกลาง', biz:true,  fast:false, group:true, risk:'ต่ำ',  conf:85, maps:'https://maps.google.com/?q=Lily+Fus+Sukhumvit' },
+    { name:'Roast Coffee & Eatery',       note:'เดิน 5 นาทีจาก BTS พร้อมพงษ์', type:'Cafe / All-day',     price:300, rating:4.4, reviews:1100, hours:'08:00–22:00', groupSize:'2–8 คน',  speed:'ปานกลาง', noise:'เงียบ',   biz:true,  fast:false, group:false,risk:'ต่ำ',  conf:88, maps:'https://maps.google.com/?q=Roast+Coffee+Eatery+Bangkok' },
+    { name:'Quince Bangkok',              note:'ใกล้ BTS พร้อมพงษ์',            type:'European / Fine Dining',price:900,rating:4.5, reviews:340,  hours:'12:00–23:00', groupSize:'4–10 คน', speed:'ช้า',     noise:'เงียบ',   biz:true,  fast:false, group:true, risk:'กลาง', conf:82, maps:'https://maps.google.com/?q=Quince+Bangkok' },
+    { name:'Sushi Hiro พร้อมพงษ์',        note:'ซอย Sukhumvit 26',              type:'Japanese / Sushi',   price:600, rating:4.4, reviews:890,  hours:'11:30–22:00', groupSize:'4–10 คน', speed:'ปานกลาง', noise:'เงียบ',   biz:true,  fast:false, group:true, risk:'ต่ำ',  conf:87, maps:'https://maps.google.com/?q=Sushi+Hiro+Phrom+Phong' },
+    { name:'Bo.lan',                      note:'Thai Fine Dining หยุดอังคาร',   type:'Thai Fine Dining',   price:2500,rating:4.5, reviews:520,  hours:'12:00–22:00', groupSize:'4–12 คน', speed:'ช้า',     noise:'เงียบ',   biz:true,  fast:false, group:true, risk:'สูง',  conf:88, maps:'https://maps.google.com/?q=Bo.lan+Bangkok' },
+  ]
+};
+
+// =============================================
+// SCORING MODEL (100 pts — 6 dimensions)
+// =============================================
+function scoreRestaurant(r) {
+  // 1. Rating & Review Quality (25)
+  const rBase = Math.round((Math.max(r.rating-4.0,0)/1.0)*15+8);
+  const rBonus = r.reviews>=2000?5:r.reviews>=1000?4:r.reviews>=500?3:r.reviews>=200?2:r.reviews>=100?1:0;
+  const rr = Math.min(rBase+rBonus, 25);
+  // 2. Group Suitability (20)
+  let gs = r.group ? 12 : 5;
+  if(r.type.toLowerCase().includes('suki')||r.type.toLowerCase().includes('buffet')) gs += 5;
+  if(r.group && r.price<=600) gs += 3;
+  gs = Math.min(gs, 20);
+  // 3. Price (15)
+  const ps = r.price<=200?13:r.price<=400?15:r.price<=600?11:r.price<=1200?9:r.price<=1500?6:3;
+  // 4. Travel (15)
+  const ts = (['สยาม','อารีย์','อโศก'].includes(currentArea))?15:14;
+  // 5. Data (15)
+  const ds = 15;
+  // 6. Unique (10)
+  const tl = r.type.toLowerCase();
+  const us = tl.includes('french')||tl.includes('chinese')||tl.includes('indian')||tl.includes('fine dining')?9:
+             tl.includes('suki')||tl.includes('buffet')||tl.includes('japanese')||tl.includes('steak')?8:
+             tl.includes('korean')||tl.includes('italian')||tl.includes('european')?7:6;
+  return { rr,gs,ps,ts,ds,us, total:rr+gs+ps+ts+ds+us };
+}
+
+// =============================================
+// STATE
+// =============================================
+let currentArea = 'ทองหล่อ';
+let currentScenario = 'safe';
+let sortCol = 'score';
+let sortAsc = false;
+
+function getCurrentData() {
+  return (ALL_DATA[currentArea]||[]).map(r=>({...r,...scoreRestaurant(r)}));
+}
+
+// =============================================
+// AREA + SCENARIO
+// =============================================
+function setArea(area) {
+  currentArea = area;
+  document.querySelectorAll('.area-btn').forEach(b=>b.classList.toggle('active', b.textContent.includes(area)));
+  document.getElementById('areaTitle').textContent = area;
+  document.getElementById('askAreaLabel').textContent = area;
+  renderAll();
+}
+
+function setScenario(sc) {
+  currentScenario = sc;
+  document.querySelectorAll('.sc-tab').forEach(b=>b.classList.toggle('active', b.onclick.toString().includes(`'${sc}'`)));
+  renderTop3();
+}
+
+// =============================================
+// STATS
+// =============================================
+function renderAreaStats() {
+  const data = getCurrentData();
+  const avgPrice = Math.round(data.reduce((a,r)=>a+r.price,0)/data.length);
+  const avgScore = (data.reduce((a,r)=>a+r.total,0)/data.length).toFixed(1);
+  const groupOk = data.filter(r=>r.group).length;
+  document.getElementById('areaStats').innerHTML = `
+    <div class="stat-card"><span class="stat-val">${data.length}</span><span class="stat-label">ร้านในพื้นที่</span></div>
+    <div class="stat-card"><span class="stat-val">฿${avgPrice}</span><span class="stat-label">เฉลี่ย/คน</span></div>
+    <div class="stat-card"><span class="stat-val">${avgScore}</span><span class="stat-label">Avg Score (0–100)</span></div>
+    <div class="stat-card"><span class="stat-val">${groupOk}</span><span class="stat-label">รองรับ 8–12 คน</span></div>
+  `;
+}
+
+function renderGlobalStats() {
+  const allRest = Object.values(ALL_DATA).flat();
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><span class="stat-val">5</span><span class="stat-label">ย่านกรุงเทพฯ</span></div>
+    <div class="stat-card"><span class="stat-val">25</span><span class="stat-label">ร้านทั้งหมด</span></div>
+    <div class="stat-card"><span class="stat-val">8–12</span><span class="stat-label">คนในทีม</span></div>
+    <div class="stat-card"><span class="stat-val">100</span><span class="stat-label">คะแนน Scoring</span></div>
+  `;
+}
+
+// =============================================
+// TOP 3
+// =============================================
+function getTop3(data, scenario) {
+  let sorted = [...data];
+  if(scenario==='safe')   sorted = sorted.sort((a,b)=>(b.rating*10+Math.log(b.reviews))-(a.rating*10+Math.log(a.reviews)));
+  if(scenario==='budget') sorted = sorted.sort((a,b)=>a.price-b.price);
+  if(scenario==='fast')   sorted = sorted.filter(r=>r.fast).sort((a,b)=>b.total-a.total);
+  if(scenario==='biz')    sorted = sorted.filter(r=>r.biz).sort((a,b)=>b.total-a.total);
+  if(scenario==='group')  sorted = sorted.filter(r=>r.group).sort((a,b)=>b.total-a.total);
+  if(!sorted.length) sorted = data.sort((a,b)=>b.total-a.total);
+  return sorted.slice(0,3);
+}
+
+function renderTop3() {
+  const data = getCurrentData();
+  const top3 = getTop3(data, currentScenario);
+  const rankClass = ['rank1','rank2','rank3'];
+  const medals = ['🥇','🥈','🥉'];
+  const scLabel = {safe:'ปลอดภัยสุด',budget:'ประหยัด',fast:'รีบกิน',biz:'คุยงานได้',group:'ทีม 8–12 คน'};
+  document.getElementById('top3Grid').innerHTML = top3.map((r,i)=>`
+    <div class="r-card ${rankClass[i]}">
+      <div class="r-rank">${medals[i]} #${i+1} ${scLabel[currentScenario]}</div>
+      <div class="r-rating">
+        <span class="stars">${'★'.repeat(Math.round(r.rating))}${'☆'.repeat(5-Math.round(r.rating))}</span>
+        <span style="color:var(--muted);font-size:11px">${r.rating} (${r.reviews.toLocaleString()})</span>
+      </div>
+      <div class="r-name">${r.name}</div>
+      <div class="r-type">${r.type}</div>
+      <div class="r-price-badge">฿${r.price}/คน</div>
+      <div style="margin-top:6px">
+        <span class="r-score">${r.total}<small>/100</small></span>
+        <span style="font-size:10px;color:var(--muted);margin-left:8px">RR:${r.rr} G:${r.gs} P:${r.ps} T:${r.ts} D:${r.ds} U:${r.us}</span>
+      </div>
+      <div class="r-tags">
+        ${r.group?'<span class="tag green">กลุ่มใหญ่ ✓</span>':''}
+        ${r.biz?'<span class="tag">คุยงานได้ ✓</span>':''}
+        ${r.fast?'<span class="tag">กินเร็ว ✓</span>':''}
+        ${r.risk==='สูง'?'<span class="tag red">⚠ Risk สูง</span>':r.risk==='กลาง'?'<span class="tag yellow">Risk กลาง</span>':''}
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--muted)">📍 ${r.note}</div>
+      <div style="margin-top:6px;font-size:10px;color:var(--muted)">🕐 ${r.hours}</div>
+      <a class="maps-link" href="${r.maps}" target="_blank" style="display:block;margin-top:6px">🗺 ดูบน Google Maps →</a>
+    </div>
+  `).join('');
+}
+
+// =============================================
+// TABLE
+// =============================================
+function buildTypeOptions() {
+  const sel = document.getElementById('filterType');
+  const data = getCurrentData();
+  const types = [...new Set(data.map(r=>r.type.split('/')[0].trim()))];
+  sel.innerHTML = '<option value="">ทั้งหมด</option>'+types.map(t=>`<option value="${t}">${t}</option>`).join('');
+}
+
+function renderTable() {
+  const data = getCurrentData();
+  const typeF = document.getElementById('filterType').value;
+  const scF   = document.getElementById('filterScenario').value;
+  const riskF = document.getElementById('filterRisk').value;
+  const priceF = parseInt(document.getElementById('filterPrice').value);
+  let filtered = data.filter(r=>{
+    if(typeF && !r.type.includes(typeF)) return false;
+    if(scF==='group' && !r.group) return false;
+    if(scF==='biz'   && !r.biz)   return false;
+    if(scF==='fast'  && !r.fast)  return false;
+    if(riskF && r.risk!==riskF) return false;
+    if(r.price > priceF) return false;
+    return true;
+  });
+  if(sortCol) filtered.sort((a,b)=>{
+    const va = a[sortCol]||0, vb = b[sortCol]||0;
+    return sortAsc ? va-vb : vb-va;
+  });
+  document.getElementById('tableCount').textContent = `${filtered.length} / ${data.length} ร้าน`;
+  const scoreClass = s => s>=80?'score-high':s>=70?'score-mid':'score-low';
+  document.getElementById('tableBody').innerHTML = filtered.map(r=>`
+    <tr>
+      <td><div class="tbl-name">${r.name}<small>${r.note}</small></div></td>
+      <td style="color:var(--yellow)">฿${r.price}</td>
+      <td><span style="color:var(--accent)">★ ${r.rating}</span> <small style="color:var(--muted)">(${r.reviews.toLocaleString()})</small></td>
+      <td><span class="score-pill ${scoreClass(r.total)}">${r.total}</span></td>
+      <td>
+        <div class="conf-bar">
+          <div class="conf-fill" style="width:${r.conf}px;max-width:60px"></div>
+          <span style="font-size:10px;color:var(--muted)">${r.conf}%</span>
+        </div>
+      </td>
+      <td style="color:var(--muted)">${r.type}</td>
+      <td style="color:var(--muted);font-size:10px">${r.hours}</td>
+      <td style="font-size:10px">${r.group?'<span style="color:var(--accent)">'+r.groupSize+'</span>':'<span style="color:#333">–</span>'}</td>
+      <td style="text-align:center">${r.noise==='เงียบ'?'<span style="color:var(--accent)">●</span>':'<span style="color:#333">○</span>'}</td>
+      <td class="${r.biz?'bool-yes':'bool-no'}" style="text-align:center">${r.biz?'✓':'–'}</td>
+      <td class="${r.fast?'bool-yes':'bool-no'}" style="text-align:center">${r.fast?'✓':'–'}</td>
+      <td><span class="risk-badge ${r.risk==='ต่ำ'?'risk-low':r.risk==='กลาง'?'risk-mid':'risk-high'}">${r.risk}</span></td>
+      <td style="color:var(--muted);font-size:10px;max-width:150px">${r.note}</td>
+      <td><a class="maps-link" href="${r.maps}" target="_blank">🗺</a></td>
+    </tr>
+  `).join('') || '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:20px">ไม่พบร้านที่ตรงกับเงื่อนไข</td></tr>';
+}
+
+function sortTable(col) {
+  if(sortCol===col) sortAsc=!sortAsc; else {sortCol=col;sortAsc=false;}
+  renderTable();
+}
+
+// =============================================
+// HUMAN REVIEW QUEUE
+// =============================================
+function renderReviewQueue() {
+  const data = getCurrentData();
+  const flagged = data.filter(r=>r.conf<80||r.risk==='สูง'||r.reviews<100);
+  const critical = flagged.filter(r=>r.risk==='สูง'||r.conf<70).length;
+  const warn = flagged.length - critical;
+  document.getElementById('reviewCount').textContent = `${critical} critical · ${warn} warning`;
+  if(!flagged.length){
+    document.getElementById('reviewPanel').innerHTML = '<div style="color:var(--accent);padding:10px">✓ ไม่มีรายการที่ต้องตรวจสอบในย่านนี้</div>';
+    return;
+  }
+  document.getElementById('reviewPanel').innerHTML = `
+    <div style="color:var(--muted);font-size:11px;margin-bottom:12px">Human Review เป็น step สุดท้ายของ pipeline — รายการที่แสดงถูก flag โดย AI ควรได้รับการยืนยันจากมนุษย์ก่อนนำไปใช้ในการตัดสินใจ</div>
+    ${flagged.map(r=>{
+      const flags = [];
+      if(r.risk==='สูง') flags.push({icon:'🔴',text:'ความเสี่ยงสูง — ราคาพรีเมียมหรือข้อมูลไม่แน่นอน ควรยืนยันก่อนจอง'});
+      if(r.conf<70) flags.push({icon:'🔴',text:`AI Confidence เพียง ${r.conf}% — ข้อมูลอาจไม่ครบหรือเก่า ควรยืนยันจาก source จริง`});
+      if(r.conf>=70&&r.conf<80) flags.push({icon:'🟡',text:`AI Confidence ${r.conf}% — ควรตรวจสอบข้อมูลเพิ่มเติมก่อนตัดสินใจ`});
+      if(r.reviews<100) flags.push({icon:'🟡',text:`รีวิวน้อยมาก (${r.reviews}) — ยังไม่มีข้อมูลเพียงพอสำหรับการตัดสินใจ`});
+      return `<div class="review-item">
+        <div class="review-header">
+          <div><div class="review-name">${r.name}</div><div class="review-type">${r.type} · ฿${r.price}/คน</div></div>
+          <span class="risk-badge ${r.risk==='ต่ำ'?'risk-low':r.risk==='กลาง'?'risk-mid':'risk-high'}">${r.risk==='สูง'?'⚠ ต้องตรวจสอบ':'แจ้งเตือน'}</span>
+        </div>
+        <div class="review-flags">
+          ${flags.map(f=>`<div class="flag"><span class="flag-icon${f.icon==='🟡'?' warn':''}">${f.icon}</span><span class="flag-text">${f.text}</span></div>`).join('')}
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+// =============================================
+// AI ASK BOX
+// =============================================
+function askQ(q) {
+  const input = document.getElementById('askInput');
+  const question = q || input.value.trim();
+  if(!question) return;
+  input.value = question;
+  const resp = document.getElementById('askResponse');
+  resp.className = 'ask-response show';
+  resp.textContent = '⏳ กำลังค้นหาในฐานข้อมูล...';
+  setTimeout(()=>{
+    const data = getCurrentData().sort((a,b)=>b.total-a.total);
+    resp.textContent = generateAnswer(question, data);
+  }, 600);
+}
+
+function generateAnswer(q, data) {
+  const ql = q.toLowerCase();
+  const area = currentArea;
+
+  // ราคาถูก / งบประมาณ
+  if(ql.includes('ราคา')||ql.includes('งบ')||ql.includes('ถูก')||ql.includes('ประหยัด')) {
+    const budget = parseInt(q.match(/\d+/)?.[0]) || 999999;
+    const matched = data.filter(r=>r.price<=budget).sort((a,b)=>a.price-b.price);
+    if(!matched.length) return `❌ ไม่พบร้านในย่าน ${area} ที่ราคา ≤฿${budget}/คน`;
+    return `💰 ร้านในย่าน ${area} ราคา ≤฿${budget}/คน:\n\n${matched.map((r,i)=>`${i+1}. ${r.name}\n   ฿${r.price}/คน · ⭐${r.rating} (${r.reviews.toLocaleString()} reviews) · Score: ${r.total}/100\n   📍 ${r.note}`).join('\n\n')}\n\n⚠️ ข้อมูลนี้อ้างอิงจาก dataset ย่าน ${area} เท่านั้น`;
+  }
+
+  // กลุ่มใหญ่
+  if(ql.includes('กลุ่ม')||ql.includes('คน')||ql.includes('หมู่')||ql.includes('ทีม')) {
+    const matched = data.filter(r=>r.group).sort((a,b)=>b.total-a.total);
+    if(!matched.length) return `❌ ไม่พบร้านในย่าน ${area} ที่รองรับกลุ่มใหญ่`;
+    return `👥 ร้านในย่าน ${area} ที่รองรับกลุ่ม 8–12 คน:\n\n${matched.map((r,i)=>`${i+1}. ${r.name}\n   ฿${r.price}/คน · ⭐${r.rating} · Score: ${r.total}/100 · ${r.groupSize}\n   📍 ${r.note}\n   🕐 ${r.hours}`).join('\n\n')}\n\n⚠️ ข้อมูลนี้อ้างอิงจาก dataset ย่าน ${area} เท่านั้น`;
+  }
+
+  // คุยงาน / เงียบ / ประชุม
+  if(ql.includes('คุยงาน')||ql.includes('ประชุม')||ql.includes('เงียบ')||ql.includes('private')) {
+    const matched = data.filter(r=>r.biz||r.noise==='เงียบ').sort((a,b)=>b.total-a.total);
+    if(!matched.length) return `❌ ไม่พบร้านในย่าน ${area} ที่เหมาะคุยงาน`;
+    return `💼 ร้านในย่าน ${area} เหมาะคุยงาน / บรรยากาศเงียบ:\n\n${matched.map((r,i)=>`${i+1}. ${r.name}\n   ฿${r.price}/คน · 🔇 ${r.noise} · Score: ${r.total}/100\n   📍 ${r.note}`).join('\n\n')}\n\n⚠️ ข้อมูลนี้อ้างอิงจาก dataset ย่าน ${area} เท่านั้น`;
+  }
+
+  // กินเร็ว
+  if(ql.includes('เร็ว')||ql.includes('รีบ')||ql.includes('ด่วน')) {
+    const matched = data.filter(r=>r.fast||r.speed==='เร็ว').sort((a,b)=>a.price-b.price);
+    if(!matched.length) return `❌ ไม่พบร้านในย่าน ${area} ที่เสิร์ฟเร็ว`;
+    return `⚡ ร้านในย่าน ${area} ที่กินเร็ว:\n\n${matched.map((r,i)=>`${i+1}. ${r.name}\n   ฿${r.price}/คน · 🏃 เร็ว · Score: ${r.total}/100\n   📍 ${r.note}\n   🕐 ${r.hours}`).join('\n\n')}\n\n⚠️ ข้อมูลนี้อ้างอิงจาก dataset ย่าน ${area} เท่านั้น`;
+  }
+
+  // rating ดีที่สุด
+  if(ql.includes('rating')||ql.includes('ดีที่สุด')||ql.includes('อันดับ')||ql.includes('คะแนน')) {
+    const top = data.sort((a,b)=>b.total-a.total).slice(0,3);
+    return `🏆 Top 3 ร้านในย่าน ${area} คะแนนรวมสูงสุด:\n\n${top.map((r,i)=>`${i+1}. ${r.name}\n   Score: ${r.total}/100 · ⭐${r.rating} (${r.reviews.toLocaleString()} reviews)\n   ฿${r.price}/คน · ${r.type}\n   📍 ${r.note}`).join('\n\n')}\n\n⚠️ ข้อมูลนี้อ้างอิงจาก dataset ย่าน ${area} เท่านั้น`;
+  }
+
+  // ถูกที่สุด
+  if(ql.includes('ถูกที่สุด')||ql.includes('ราคาต่ำ')) {
+    const cheapest = data.sort((a,b)=>a.price-b.price)[0];
+    return `💸 ร้านที่ถูกที่สุดในย่าน ${area}:\n\n${cheapest.name}\n฿${cheapest.price}/คน · ⭐${cheapest.rating} · ${cheapest.type}\n📍 ${cheapest.note}\n🕐 ${cheapest.hours}\n\n⚠️ ข้อมูลนี้อ้างอิงจาก dataset ย่าน ${area} เท่านั้น`;
+  }
+
+  // default
+  const top1 = data[0];
+  return `🔍 คำตอบสำหรับ "${q}" จาก dataset ย่าน ${area}:\n\nจากข้อมูลร้านอาหาร ${data.length} ร้านในย่าน ${area} ร้านที่เหมาะที่สุดโดยรวมคือ:\n\n1. ${top1.name}\n   Score: ${top1.total}/100 · ⭐${top1.rating} · ฿${top1.price}/คน\n   📍 ${top1.note}\n\nแนะนำลองถามเกี่ยวกับ: ราคา / กลุ่มใหญ่ / คุยงาน / กินเร็ว / rating ดีที่สุด\n\n⚠️ AI ตอบจาก dataset ${data.length} ร้านในย่าน ${area} เท่านั้น ไม่ใช่ความรู้ทั่วไป`;
+}
+
+// =============================================
+// RENDER ALL
+// =============================================
+function renderAll() {
+  renderAreaStats();
+  renderTop3();
+  buildTypeOptions();
+  renderTable();
+  renderReviewQueue();
+  document.getElementById('askResponse').className='ask-response';
+}
+
+// INIT
+renderGlobalStats();
+renderAll();
+</script>
+</body>
+</html>
